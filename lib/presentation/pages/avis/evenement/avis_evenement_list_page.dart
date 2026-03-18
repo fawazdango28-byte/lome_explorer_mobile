@@ -1,3 +1,4 @@
+import 'package:event_flow/config/app_routers.dart';
 import 'package:event_flow/config/theme/app_color.dart';
 import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/core/providers/avis_provider.dart';
@@ -371,6 +372,19 @@ class _AvisEvenementListPageState extends State<AvisEvenementListPage> {
   }
 
   void _navigateToCreateAvis(BuildContext context) {
+    // Vérifier si l'utilisateur est connecté
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+    if (!authNotifier.isAuthenticated) {
+      // Rediriger vers la page de connexion
+      AppRoutes.navigateTo(context, AppRoutes.login);
+      // Afficher un message
+      SnackBarHelper.showInfo(
+        context,
+        'Veuillez vous connecter pour donner votre avis',
+      );
+      return;
+    }
+
     // Naviguer vers création d'avis
     Navigator.push(
       context,

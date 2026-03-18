@@ -3,7 +3,6 @@ import 'package:event_flow/domains/entities/evenement_entity.dart';
 import 'package:event_flow/domains/entities/lieu_entity.dart';
 import 'package:logger/logger.dart';
 
-// Logger global pour les models
 final _logger = Logger();
 
 // ==================== MODELS LIEU ====================
@@ -20,6 +19,7 @@ class LieuModel extends Equatable {
   final String proprietaireId;
   final int nombreEvenements;
   final double? moyenneAvis;
+  final String? imageLieu; // ✅ AJOUT: URL de l'image
 
   const LieuModel({
     required this.id,
@@ -33,18 +33,16 @@ class LieuModel extends Equatable {
     required this.proprietaireId,
     required this.nombreEvenements,
     this.moyenneAvis,
+    this.imageLieu, // ✅ AJOUT
   });
 
   factory LieuModel.fromJson(Map<String, dynamic> json) {
     String proprietaireId = '';
     
-    // Vérifier proprietaire_id en premier
     if (json['proprietaire_id'] != null && json['proprietaire_id'].toString().isNotEmpty) {
       proprietaireId = json['proprietaire_id'].toString();
       _logger.d('proprietaire_id trouvé: "$proprietaireId"');
-    }
-    // Essayer proprietaire
-    else if (json['proprietaire'] != null) {
+    } else if (json['proprietaire'] != null) {
       if (json['proprietaire'] is String) {
         proprietaireId = json['proprietaire'] as String;
         _logger.d('proprietaire (string) trouvé: "$proprietaireId"');
@@ -56,12 +54,17 @@ class LieuModel extends Equatable {
     }
     
     _logger.d('RÉSULTAT FINAL: proprietaireId = "$proprietaireId"');
-    _logger.d('================================\n');
 
-    // Extraction sécurisée de la description
     String description = '';
     if (json['description'] != null) {
       description = json['description'].toString().trim();
+    }
+
+    // ✅ AJOUT: Extraction de l'URL de l'image
+    String? imageLieu;
+    if (json['image_lieu'] != null && json['image_lieu'].toString().isNotEmpty) {
+      imageLieu = json['image_lieu'].toString();
+      _logger.d('image_lieu trouvée: "$imageLieu"');
     }
 
     return LieuModel(
@@ -80,6 +83,7 @@ class LieuModel extends Equatable {
       moyenneAvis: json['moyenne_avis'] != null
           ? double.parse(json['moyenne_avis'].toString())
           : null,
+      imageLieu: imageLieu, // ✅ AJOUT
     );
   }
 
@@ -96,13 +100,14 @@ class LieuModel extends Equatable {
       'proprietaire_id': proprietaireId, 
       'nombre_evenements': nombreEvenements,
       'moyenne_avis': moyenneAvis,
+      'image_lieu': imageLieu, // ✅ AJOUT
     };
   }
 
   LieuEntity toEntity() {
     _logger.d('LieuModel.toEntity - "$nom"');
     _logger.d(' proprietaireId: "$proprietaireId"');
-    _logger.d(' description: "${description.isNotEmpty ? description.substring(0, description.length > 50 ? 50 : description.length) : '(vide)'}"...');
+    _logger.d(' imageLieu: "$imageLieu"');
 
     return LieuEntity(
       id: id,
@@ -116,6 +121,7 @@ class LieuModel extends Equatable {
       proprietaireId: proprietaireId,
       nombreEvenements: nombreEvenements,
       moyenneAvis: moyenneAvis,
+      imageLieu: imageLieu, // ✅ AJOUT
     );
   }
 
@@ -132,15 +138,17 @@ class LieuModel extends Equatable {
     proprietaireId,
     nombreEvenements,
     moyenneAvis,
+    imageLieu, // ✅ AJOUT
   ];
 
   @override
   String toString() {
-    return 'LieuModel(id: $id, nom: $nom, proprietaireId: $proprietaireId, categorie: $categorie)';
+    return 'LieuModel(id: $id, nom: $nom, proprietaireId: $proprietaireId, '
+        'categorie: $categorie, imageLieu: $imageLieu)';
   }
 }
 
-// ==================== MODELS ÉVÉNEMENT ====================
+// ==================== MODELS ÉVÉNEMENT (inchangé) ====================
 
 class EvenementModel extends Equatable {
   final String id;
@@ -178,7 +186,6 @@ class EvenementModel extends Equatable {
   factory EvenementModel.fromJson(Map<String, dynamic> json) {
     _logger.d('EvenementModel.fromJson - Parsing événement: ${json['nom']}');
   
-    // Extraction organisateur_id
     String organisateurId = '';
     if (json['organisateur_id'] != null && json['organisateur_id'].toString().isNotEmpty) {
       organisateurId = json['organisateur_id'].toString();
@@ -191,7 +198,6 @@ class EvenementModel extends Equatable {
       }
     }
 
-    // Extraction sécurisée de la description
     String description = '';
     if (json['description'] != null) {
       description = json['description'].toString().trim();

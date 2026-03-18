@@ -1,5 +1,6 @@
 import 'package:event_flow/config/app_routers.dart';
 import 'package:event_flow/config/theme/app_color.dart';
+import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/core/providers/lieu_evenement_provider.dart';
 import 'package:event_flow/core/services/lieu_evenement_service.dart';
 import 'package:event_flow/domains/entities/evenement_entity.dart';
@@ -145,6 +146,19 @@ class _EvenementDetailPageState extends State<EvenementDetailPage> {
 
           return FloatingActionButton.extended(
             onPressed: () {
+              // Vérifier si l'utilisateur est connecté
+              final authNotifier = context.read<AuthNotifier>();
+              if (!authNotifier.isAuthenticated) {
+                // Rediriger vers la page de connexion
+                AppRoutes.navigateTo(context, AppRoutes.login);
+                // Afficher un message
+                SnackBarHelper.showInfo(
+                  context,
+                  'Veuillez vous connecter pour donner votre avis',
+                );
+                return;
+              }
+
               AppRoutes.navigateTo(
                 context,
                 AppRoutes.avisEvenementCreate,

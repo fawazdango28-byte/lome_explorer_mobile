@@ -86,6 +86,8 @@ class LocalDataSource {
 
   // ==================== LIEUX ====================
 
+// ==================== LIEUX (extraits modifiés) ====================
+
   Future<void> cacheLieux(List<LieuModel> lieux) async {
     try {
       await _lieuBox.clear();
@@ -103,6 +105,7 @@ class LocalDataSource {
           proprietaireId: lieu.proprietaireId,
           nombreEvenements: lieu.nombreEvenements,
           moyenneAvis: lieu.moyenneAvis,
+          imageLieu: lieu.imageLieu, // ✅ AJOUT
         );
         await _lieuBox.put(lieu.id, hiveLieu);
       }
@@ -129,6 +132,7 @@ class LocalDataSource {
                 proprietaireId: h.proprietaireId,
                 nombreEvenements: h.nombreEvenements,
                 moyenneAvis: h.moyenneAvis,
+                imageLieu: h.imageLieu, // ✅ AJOUT
               ))
           .toList();
       _logger.d('${lieux.length} lieux récupérés du cache');
@@ -155,6 +159,7 @@ class LocalDataSource {
           proprietaireId: hiveLieu.proprietaireId,
           nombreEvenements: hiveLieu.nombreEvenements,
           moyenneAvis: hiveLieu.moyenneAvis,
+          imageLieu: hiveLieu.imageLieu, // ✅ AJOUT
         );
       }
       return null;

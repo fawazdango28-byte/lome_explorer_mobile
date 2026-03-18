@@ -1,3 +1,4 @@
+import 'dart:io'; // ✅ AJOUT
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -255,17 +256,32 @@ class RemoteDataSource {
     required String categorie,
     required double latitude,
     required double longitude,
+    File? image, // ✅ AJOUT
   }) async {
     try {
+      final formData = FormData();
+
+      // Ajouter les champs texte
+      formData.fields.addAll([
+        MapEntry('nom', nom),
+        MapEntry('description', description),
+        MapEntry('categorie', categorie),
+        MapEntry('latitude', latitude.toString()),
+        MapEntry('longitude', longitude.toString()),
+      ]);
+
+      // Ajouter l'image si présente
+      if (image != null) {
+        final fileName = image.path.split('/').last;
+        formData.files.add(MapEntry(
+          'image_lieu',
+          await MultipartFile.fromFile(image.path, filename: fileName),
+        ));
+      }
+
       final response = await _dio.post(
         ApiConstants.lieux,
-        data: {
-          'nom': nom,
-          'description': description,
-          'categorie': categorie,
-          'latitude': latitude,
-          'longitude': longitude,
-        },
+        data: formData,
       );
 
       if (response.statusCode == 201) {
@@ -288,17 +304,32 @@ class RemoteDataSource {
     required String categorie,
     required double latitude,
     required double longitude,
+    File? image, // ✅ AJOUT
   }) async {
     try {
+      final formData = FormData();
+
+      // Ajouter les champs texte
+      formData.fields.addAll([
+        MapEntry('nom', nom),
+        MapEntry('description', description),
+        MapEntry('categorie', categorie),
+        MapEntry('latitude', latitude.toString()),
+        MapEntry('longitude', longitude.toString()),
+      ]);
+
+      // Ajouter l'image si présente
+      if (image != null) {
+        final fileName = image.path.split('/').last;
+        formData.files.add(MapEntry(
+          'image_lieu',
+          await MultipartFile.fromFile(image.path, filename: fileName),
+        ));
+      }
+
       final response = await _dio.put(
         ApiConstants.lieuDetail.replaceFirst('{id}', id),
-        data: {
-          'nom': nom,
-          'description': description,
-          'categorie': categorie,
-          'latitude': latitude,
-          'longitude': longitude,
-        },
+        data: formData,
       );
 
       if (response.statusCode == 200) {

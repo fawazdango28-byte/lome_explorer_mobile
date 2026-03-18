@@ -14,6 +14,7 @@ import 'package:event_flow/core/providers/notification_provider.dart';
 import 'package:event_flow/presentation/widgets/notification_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -53,7 +54,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final pages = [
       const HomeContentPage(),
-      const MapPage(), 
+      const MapPage(),
       const LieuListPage(),
       const EvenementListPage(),
       const ProfilePage(),
@@ -107,7 +108,7 @@ class HomeContentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lomé Explorer'),
+        title: const Text('EventFlow'),
         backgroundColor: AppColors.primaryOrange,
         actions: [
           const NotificationBadge(),
@@ -115,23 +116,6 @@ class HomeContentPage extends StatelessWidget {
             icon: const Icon(Icons.bug_report, color: Colors.red),
             onPressed: () {
               Navigator.pushNamed(context, '/debug');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.red),
-            tooltip: 'Vider cache complet',
-            onPressed: () async {
-              final localDataSource = getit.getIt<LocalDataSource>();
-              await localDataSource.clearAllCache();
-
-              // Vider aussi SharedPreferences
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('cache_cleared_v2');
-
-              SnackBarHelper.showSuccess(
-                context,
-                'Cache vidé ! Redémarrez l\'app',
-              );
             },
           ),
           // Bouton carte en haut
@@ -146,10 +130,13 @@ class HomeContentPage extends StatelessWidget {
           Consumer<AuthNotifier>(
             builder: (context, authNotifier, _) {
               if (authNotifier.isAuthenticated) {
-                return IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Se déconnecter',
+                return TextButton.icon(
                   onPressed: () => _showLogoutDialog(context, authNotifier),
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
+                    'Déconnexion',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 );
               } else {
                 return TextButton.icon(
@@ -326,8 +313,6 @@ class HomeContentPage extends StatelessWidget {
     );
   }
 
-  // Remplacez la section _buildLieuxSection dans home_page.dart par ceci :
-
   Widget _buildLieuxSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,10 +356,8 @@ class HomeContentPage extends StatelessWidget {
               );
             }
 
-            
-
             return SizedBox(
-              height: 200, // Augmenté pour avoir plus d'espace
+              height: 300, // Augmenté pour avoir plus d'espace
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -383,7 +366,7 @@ class HomeContentPage extends StatelessWidget {
                   final lieu = lieuxNotifier.lieux[index];
 
                   return Container(
-                    width: 200, // Augmenté pour avoir plus d'espace
+                    width: 300, // Augmenté pour avoir plus d'espace
                     margin: const EdgeInsets.only(right: 12),
                     child: Card(
                       elevation: 2,
@@ -400,37 +383,79 @@ class HomeContentPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Nom
-                              Text(
-                                lieu.nom,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-
-                              // Catégorie
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen.withAlpha((255 * 0.1).round()),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  lieu.categorie,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.primaryGreen,
-                                    fontWeight: FontWeight.bold,
+                              // ✅ AJOUT: Image du lieu si elle existe
+                              if (lieu.imageLieu != null &&
+                                  lieu.imageLieu!.isNotEmpty) ...[
+                                Container(
+                                  height: 180,
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: CachedNetworkImage(
+                                      imageUrl: lieu.imageLieu!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey.shade300,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: Colors.grey.shade300,
+                                            child: const Icon(
+                                              Icons.broken_image,
+                                              color: Colors.grey,
+                                              size: 30,
+                                            ),
+                                          ),
+                                    ),
                                   ),
                                 ),
+                              ],
+
+                              SizedBox(height: 8),
+
+                              Row(
+                                children: [
+                                  // Nom
+                                  Text(
+                                    lieu.nom,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4, width: 20),
+
+                                  // Catégorie
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryGreen.withAlpha(
+                                        (255 * 0.1).round(),
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      lieu.categorie,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.primaryGreen,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                               ),
+
                               const SizedBox(height: 8),
 
                               // Description (NOUVEAU)
@@ -539,7 +564,9 @@ class HomeContentPage extends StatelessWidget {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withAlpha((255 * 0.2).round()),
+                        color: AppColors.primaryBlue.withAlpha(
+                          (255 * 0.2).round(),
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.event, color: AppColors.primaryBlue),

@@ -73,6 +73,9 @@ class HiveLieu {
   @HiveField(10)
   final double? moyenneAvis;
 
+  @HiveField(11)
+  final String? imageLieu; // ✅ AJOUT
+
   HiveLieu({
     required this.id,
     required this.nom,
@@ -85,6 +88,7 @@ class HiveLieu {
     required this.proprietaireId,
     required this.nombreEvenements,
     this.moyenneAvis,
+    this.imageLieu, // ✅ AJOUT
   });
 }
 

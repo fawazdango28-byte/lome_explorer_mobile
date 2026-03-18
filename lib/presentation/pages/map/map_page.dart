@@ -91,6 +91,11 @@ class _MapPageState extends State<MapPage> {
         ]);
         
         _logger.i('Données chargées');
+        
+        // Mettre à jour les markers maintenant que les données sont chargées
+        if (_isMapReady) {
+          _updateMarkers();
+        }
       }
     } catch (e) {
       _logger.e('Erreur initialisation carte: $e');

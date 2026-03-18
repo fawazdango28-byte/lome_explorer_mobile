@@ -1,3 +1,4 @@
+import 'dart:io'; // ✅ AJOUT
 import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/core/services/lieu_evenement_service.dart';
 import 'package:event_flow/domains/entities/lieu_entity.dart';
@@ -5,6 +6,7 @@ import 'package:event_flow/domains/injections/service_locator.dart' as getit;
 import 'package:event_flow/presentation/pages/auth/guard_lieu_evenement.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // ✅ AJOUT
 import 'package:provider/provider.dart';
 
 class LieuEditPage extends StatefulWidget {
@@ -25,6 +27,7 @@ class _LieuEditPageState extends State<LieuEditPage> {
 
   String? _selectedCategorie;
   bool _isLoading = false;
+  File? _selectedImage; // ✅ AJOUT
 
   final List<String> _categories = [
     'Restaurant',
@@ -80,6 +83,25 @@ class _LieuEditPageState extends State<LieuEditPage> {
     _latitudeController.dispose();
     _longitudeController.dispose();
     super.dispose();
+  }
+
+  /// Sélectionner une image depuis la galerie
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  /// Supprimer l'image sélectionnée
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+    });
   }
 
   @override
@@ -144,6 +166,128 @@ class _LieuEditPageState extends State<LieuEditPage> {
                       }
                       return null;
                     },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ✅ AJOUT: Champ pour l'image
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Image du lieu (optionnel)',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  // Afficher l'image actuelle si elle existe
+                  if (widget.lieu.imageLieu != null && widget.lieu.imageLieu!.isNotEmpty && _selectedImage == null) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Image actuelle :',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _selectedImage != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: IconButton(
+                                  onPressed: _removeImage,
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : widget.lieu.imageLieu != null && widget.lieu.imageLieu!.isNotEmpty
+                            ? Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      widget.lieu.imageLieu!,
+                                      width: double.infinity,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey.shade300,
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.broken_image,
+                                              color: Colors.grey,
+                                              size: 50,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      onPressed: _pickImage,
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                      ),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.black54,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : InkWell(
+                                onTap: _pickImage,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_photo_alternate,
+                                      size: 48,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Appuyez pour ajouter une image',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                   ),
                 ],
               ),
@@ -319,6 +463,7 @@ class _LieuEditPageState extends State<LieuEditPage> {
         categorie: categorie,
         latitude: latitude,
         longitude: longitude,
+        image: _selectedImage, // ✅ AJOUT
       );
 
       if (mounted) {

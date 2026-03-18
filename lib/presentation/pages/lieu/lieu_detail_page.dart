@@ -8,9 +8,9 @@ import 'package:event_flow/domains/entities/lieu_entity.dart';
 import 'package:event_flow/presentation/pages/auth/guard_lieu_evenement.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 final _logger = Logger();
 
@@ -43,7 +43,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
     if (mounted) {
       setState(() => _hasTriedFetch = true);
 
-      // Afficher un message d'erreur si nécessaire
       if (notifier.error != null) {
         SnackBarHelper.showError(
           context,
@@ -66,7 +65,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
 
               return Row(
                 children: [
-                  // Bouton édition avec vérification de propriété
                   OwnershipEditButton(
                     lieu: lieu,
                     onPressed: () async {
@@ -82,8 +80,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                       }
                     },
                   ),
-
-                  // Menu avec suppression protégée
                   OwnerOnly(
                     lieu: lieu,
                     fallback: IconButton(
@@ -103,12 +99,10 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
       ),
       body: Consumer<LieuDetailNotifier>(
         builder: (context, detailNotifier, _) {
-          // État de chargement
           if (detailNotifier.isLoading && !_hasTriedFetch) {
             return const LoadingWidget(message: 'Chargement des détails...');
           }
 
-          // Erreur
           if (detailNotifier.error != null) {
             return AppErrorWidget(
               message: detailNotifier.error!,
@@ -119,7 +113,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
             );
           }
 
-          // Lieu non trouvé
           final lieu = detailNotifier.cache[widget.lieuId];
           if (lieu == null) {
             return EmptyStateWidget(
@@ -131,19 +124,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
             );
           }
 
-          // Afficher les données du lieu
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.read<LieuDetailNotifier>().cache.forEach((key, value) {
-              if (value != null) {
-                _logger.i('Lieu en cache: ${value.nom}');
-                _logger.i(
-                  'Description: "${value.description}" (${value.description.length} caractères)',
-                );
-              }
-            });
-          });
-
-          // Affichage des détails
           return RefreshIndicator(
             onRefresh: () async {
               setState(() => _hasTriedFetch = false);
@@ -154,300 +134,219 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header avec info principale
-                  _buildHeader(context, lieu),
+                  // Image du lieu
+                  _buildImageHeader(lieu),
 
-                  // Détails
+                  // Informations principales compactes
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Description
-                        _buildSection(
-                          context,
-                          title: 'Description',
-                          child: Builder(
-                            builder: (context) {
-                              _logger.d(
-                                'Affichage description du lieu "${lieu.nom}":',
-                              );
-                              _logger.d('Valeur: "${lieu.description}"');
-                              _logger.d('Longueur: ${lieu.description.length}');
-                              _logger.d('isEmpty: ${lieu.description.isEmpty}');
+                        // // Nom du lieu
+                        // Text(
+                        //   lieu.nom,
+                        //   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        //     fontWeight: FontWeight.bold,
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 12),
 
-                              return Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  lieu.description.isNotEmpty
-                                      ? lieu.description
-                                      : 'Pas de description disponible.',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(height: 1.5),
-                                ),
-                              );
-                            },
+                        // Catégorie, Note et Événements sur la même ligne
+                        Row(
+                          children: [
+                            // Nom du lieu
+                        Text(
+                          lieu.nom,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const SizedBox(height: 12, width: 20,),
+                            // Catégorie
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withAlpha((255 * 0.1).round()),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.primaryGreen),
+                              ),
+                              child: Text(
+                                lieu.categorie,
+                                style: TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
 
-                        const SizedBox(height: 24),
-
-                        // Localisation
-                        _buildSection(
-                          context,
-                          title: 'Localisation',
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            // Note moyenne
+                            if (lieu.moyenneAvis != null)
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen.withAlpha((255 * 0.1).round()),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.ratingColor.withAlpha((255 * 0.1).round()),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      color: AppColors.primaryGreen,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Coordonnées GPS',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Lat: ${lieu.latitude.toStringAsFixed(6)}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Lng: ${lieu.longitude.toStringAsFixed(6)}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
+                                    Icon(Icons.star, color: AppColors.ratingColor, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      lieu.moyenneAvis!.toStringAsFixed(1),
+                                      style: TextStyle(
+                                        color: AppColors.ratingColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    // ouvrir l'application de navigation
-                                    AppRoutes.navigateTo(
-                                      context,
-                                      AppRoutes.map,
-                                      arguments: {
-                                        'latitude': lieu.latitude,
-                                        'longitude': lieu.longitude,
-                                        'lieuNom': lieu.nom,
-                                      },
-                                    );
-                                  },
-                                  icon: const Icon(Icons.navigation),
-                                  label: const Text('Naviguer vers ce lieu'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryGreen,
-                                  ),
-                                ),
+                            const SizedBox(width: 12),
+
+                            // Nombre d'événements
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue.withAlpha((255 * 0.1).round()),
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                            ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.event, color: AppColors.primaryBlue, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${lieu.nombreEvenements}',
+                                    style: TextStyle(
+                                      color: AppColors.primaryBlue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Description
+                        Text(
+                          'Description',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          lieu.description.isNotEmpty
+                              ? lieu.description
+                              : 'Pas de description disponible.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            height: 1.5,
+                            color: Colors.grey[700],
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
-                        // Propriétaire
-                        _buildSection(
-                          context,
-                          title: 'Propriétaire',
-                          child: Card(
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: AppColors.primaryBlue,
-                                child: Text(
-                                  lieu.proprietaireNom.isNotEmpty
-                                      ? lieu.proprietaireNom[0].toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                lieu.proprietaireNom.isNotEmpty
-                                    ? lieu.proprietaireNom
-                                    : 'Inconnu',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: const Text('Propriétaire du lieu'),
+                        // Bouton de navigation
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              AppRoutes.navigateTo(
+                                context,
+                                AppRoutes.map,
+                                arguments: {
+                                  'latitude': lieu.latitude,
+                                  'longitude': lieu.longitude,
+                                  'lieuNom': lieu.nom,
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.navigation),
+                            label: const Text('Naviguer vers ce lieu'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
 
-                        // Date de création
-                        _buildSection(
-                          context,
-                          title: 'Informations',
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
+                        // Section Événements
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Événements à ce lieu',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (lieu.nombreEvenements > 0)
+                              TextButton(
+                                onPressed: () {
+                                  SnackBarHelper.showInfo(
+                                    context,
+                                    'Liste des événements à venir',
+                                  );
+                                },
+                                child: const Text('Voir tout'),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        if (lieu.nombreEvenements == 0)
+                          const EmptyStateWidget(
+                            title: 'Aucun événement',
+                            message: 'Il n\'y a pas encore d\'événements pour ce lieu',
+                            icon: Icons.event_busy,
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.info.withAlpha((255 * 0.1).round()),
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.primaryBlue.withAlpha((255 * 0.05).round()),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.primaryBlue.withAlpha((255 * 0.2).round()),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: AppColors.info,
-                                  size: 20,
-                                ),
+                                Icon(Icons.event, color: AppColors.primaryBlue, size: 32),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Date de création',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatDate(lieu.dateCreation),
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    '${lieu.nombreEvenements} événement${lieu.nombreEvenements > 1 ? 's' : ''} organisé${lieu.nombreEvenements > 1 ? 's' : ''} à ce lieu',
+                                    style: Theme.of(context).textTheme.bodyMedium,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
 
-                        // Statistiques
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.star,
-                                color: AppColors.ratingColor,
-                                value:
-                                    lieu.moyenneAvis?.toStringAsFixed(1) ??
-                                    'N/A',
-                                label: 'Note moyenne',
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.event,
-                                color: AppColors.primaryBlue,
-                                value: '${lieu.nombreEvenements}',
-                                label: 'Événements',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Événements du lieu (Section simplifiée pour l'instant)
-                  const Divider(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Événements à ce lieu',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        if (lieu.nombreEvenements > 0)
-                          TextButton(
-                            onPressed: () {
-                              // Naviguer vers la liste des événements filtrée par lieu
-                              SnackBarHelper.showInfo(
-                                context,
-                                'Liste des événements à venir',
-                              );
-                            },
-                            child: const Text('Voir tout'),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (lieu.nombreEvenements == 0)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: EmptyStateWidget(
-                        title: 'Aucun événement',
-                        message:
-                            'Il n\'y a pas encore d\'événements pour ce lieu',
-                        icon: Icons.event_busy,
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        '${lieu.nombreEvenements} événement${lieu.nombreEvenements > 1 ? 's' : ''} organisé${lieu.nombreEvenements > 1 ? 's' : ''} à ce lieu',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-
-                  // Avis - Section complète avec bouton
-                  const Divider(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        // Section Avis
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'Avis des visiteurs',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             TextButton(
                               onPressed: () {
@@ -466,10 +365,9 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                         ),
                         const SizedBox(height: 12),
 
-                        //  Statistiques des avis
                         if (lieu.moyenneAvis != null)
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: AppColors.ratingColor.withAlpha((255 * 0.1).round()),
                               borderRadius: BorderRadius.circular(12),
@@ -480,31 +378,50 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                                 Icon(
                                   Icons.star,
                                   color: AppColors.ratingColor,
-                                  size: 32,
+                                  size: 40,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   lieu.moyenneAvis!.toStringAsFixed(1),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.ratingColor,
-                                      ),
+                                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.ratingColor,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   '/ 5',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(color: AppColors.mediumGrey),
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppColors.mediumGrey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withAlpha((255 * 0.1).round()),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.star_border, color: Colors.grey, size: 32),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Aucun avis pour le moment',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
+
                         const SizedBox(height: 16),
 
-                        //  Bouton pour voir/donner un avis
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -521,16 +438,16 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                             icon: const Icon(Icons.reviews),
                             label: const Text('Voir tous les avis'),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               backgroundColor: AppColors.primaryGreen,
                             ),
                           ),
                         ),
+
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -544,6 +461,19 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
 
           return FloatingActionButton.extended(
             onPressed: () {
+              // Vérifier si l'utilisateur est connecté
+              final authNotifier = context.read<AuthNotifier>();
+              if (!authNotifier.isAuthenticated) {
+                // Rediriger vers la page de connexion
+                AppRoutes.navigateTo(context, AppRoutes.login);
+                // Afficher un message
+                SnackBarHelper.showInfo(
+                  context,
+                  'Veuillez vous connecter pour donner votre avis',
+                );
+                return;
+              }
+
               AppRoutes.navigateTo(
                 context,
                 AppRoutes.avisLieuCreate,
@@ -559,151 +489,55 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, dynamic lieu) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryOrange,
-            AppColors.primaryOrange.withAlpha((255 * 0.7).round()),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildImageHeader(dynamic lieu) {
+    if (lieu.imageLieu != null && lieu.imageLieu!.isNotEmpty) {
+      return SizedBox(
+        width: double.infinity,
+        height: 250,
+        child: CachedNetworkImage(
+          imageUrl: lieu.imageLieu!,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: Colors.grey.shade300,
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey.shade300,
+            child: const Icon(
+              Icons.broken_image,
+              color: Colors.grey,
+              size: 60,
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            lieu.nom,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              lieu.categorie,
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (lieu.moyenneAvis != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha((255 * 0.2).round()),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star, color: Colors.white, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${lieu.moyenneAvis!.toStringAsFixed(1)} / 5',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((255 * 0.2).round()),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.event, color: Colors.white, size: 20),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${lieu.nombreEvenements} événement${lieu.nombreEvenements > 1 ? 's' : ''}',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
+      );
+    } else {
+      return Container(
+        width: double.infinity,
+        height: 250,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primaryOrange,
+              AppColors.primaryOrange.withAlpha((255 * 0.7).round()),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(
-    BuildContext context, {
-    required String title,
-    required Widget child,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
-        child,
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required Color color,
-    required String value,
-    required String label,
-  }) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Center(
+          child: Icon(
+            Icons.place,
+            size: 80,
+            color: Colors.white.withAlpha((255 * 0.5).round()),
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
-  // Méthode pour le menu du propriétaire
   void _showOwnerMenu(BuildContext context, LieuEntity lieu) {
     showModalBottomSheet(
       context: context,
@@ -736,7 +570,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                 Navigator.pop(context);
                 final canDelete = await context.canDeleteLieu(lieu);
                 if (canDelete && context.mounted) {
-                  // Afficher dialogue de confirmation
                   _showDeleteDialog(context, lieu);
                 }
               },
@@ -756,7 +589,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
     );
   }
 
-  // Méthode pour le menu public (non-propriétaire)
   void _showPublicMenu(BuildContext context, LieuEntity lieu) {
     showModalBottomSheet(
       context: context,
@@ -794,7 +626,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
     );
   }
 
-  /// Afficher le dialogue de confirmation de suppression
   void _showDeleteDialog(BuildContext context, LieuEntity lieu) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -846,11 +677,10 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
                       Expanded(
                         child: Text(
                           'Cette action est irréversible',
-                          style: Theme.of(dialogContext).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -861,9 +691,9 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
             const SizedBox(height: 12),
             Text(
               'Tous les événements associés à ce lieu seront également affectés.',
-              style: Theme.of(
-                dialogContext,
-              ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+              style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
@@ -883,7 +713,6 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
 
     if (confirmed == true && context.mounted) {
       try {
-        // Afficher un indicateur de chargement
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -891,13 +720,10 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
               const Center(child: CircularProgressIndicator()),
         );
 
-        // Supprimer le lieu
         await getit.getIt<LieuEvenementService>().deleteLieu(lieu.id);
 
-        // Fermer le dialogue de chargement
         if (context.mounted) Navigator.pop(context);
 
-        // Succès
         if (context.mounted) {
           SnackBarHelper.showSuccess(
             context,
@@ -906,10 +732,8 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
           Navigator.pop(context, true);
         }
       } catch (e) {
-        // Fermer le dialogue de chargement
         if (context.mounted) Navigator.pop(context);
 
-        // Gérer l'erreur
         if (context.mounted) {
           String errorMessage = 'Erreur lors de la suppression: ';
 
@@ -921,8 +745,7 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
               Navigator.pop(context);
             }
           } else if (e.toString().contains('403')) {
-            errorMessage =
-                'Vous n\'avez pas la permission de supprimer ce lieu.';
+            errorMessage = 'Vous n\'avez pas la permission de supprimer ce lieu.';
           } else {
             errorMessage += e.toString();
           }
@@ -931,10 +754,5 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
         }
       }
     }
-  }
-
-  String _formatDate(DateTime date) {
-    final formatter = DateFormat('dd MMMM yyyy', 'fr_FR');
-    return formatter.format(date);
   }
 }

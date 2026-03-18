@@ -1,3 +1,4 @@
+import 'dart:io'; // ✅ AJOUT
 import 'package:dartz/dartz.dart';
 import 'package:event_flow/config/api_execption.dart';
 import 'package:event_flow/core/services/lieu_evenement_service.dart';
@@ -57,6 +58,7 @@ class LieuEvenementRepositoryImpl implements LieuEvenementRepository {
     required String categorie,
     required double latitude,
     required double longitude,
+    File? image, 
   }) async {
     try {
       final lieu = await _service.createLieu(
@@ -65,6 +67,7 @@ class LieuEvenementRepositoryImpl implements LieuEvenementRepository {
         categorie: categorie,
         latitude: latitude,
         longitude: longitude,
+        image: image, 
       );
       return Right(lieu.toEntity());
     } catch (e) {

@@ -101,13 +101,14 @@ class HiveLieuAdapter extends TypeAdapter<HiveLieu> {
       proprietaireId: fields[8] as String,
       nombreEvenements: fields[9] as int,
       moyenneAvis: fields[10] as double?,
+      imageLieu: fields[11] as String?, // ✅ AJOUT
     );
   }
 
   @override
   void write(BinaryWriter writer, HiveLieu obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12) // ✅ MODIFIÉ: 11 -> 12 champs maintenant
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -129,7 +130,9 @@ class HiveLieuAdapter extends TypeAdapter<HiveLieu> {
       ..writeByte(9)
       ..write(obj.nombreEvenements)
       ..writeByte(10)
-      ..write(obj.moyenneAvis);
+      ..write(obj.moyenneAvis)
+      ..writeByte(11) // ✅ AJOUT
+      ..write(obj.imageLieu);
   }
 
   @override

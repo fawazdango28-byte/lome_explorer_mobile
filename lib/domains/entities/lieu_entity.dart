@@ -11,7 +11,8 @@ class LieuEntity extends Equatable {
   final String proprietaireNom;  
   final String proprietaireId; 
   final int nombreEvenements;
-  final double? moyenneAvis;  
+  final double? moyenneAvis;
+  final String? imageLieu; // ✅ AJOUT: URL de l'image
 
   const LieuEntity({
     required this.id,
@@ -25,6 +26,7 @@ class LieuEntity extends Equatable {
     required this.proprietaireId,
     required this.nombreEvenements,
     this.moyenneAvis,
+    this.imageLieu, // ✅ AJOUT
   });
 
   @override
@@ -40,12 +42,14 @@ class LieuEntity extends Equatable {
     proprietaireId,
     nombreEvenements,
     moyenneAvis,
+    imageLieu, 
   ];
 
   @override
   String toString() {
     return 'LieuEntity(id: $id, nom: $nom, categorie: $categorie, '
         'latitude: $latitude, longitude: $longitude, '
-        'nombreEvenements: $nombreEvenements, moyenneAvis: $moyenneAvis)';
+        'nombreEvenements: $nombreEvenements, moyenneAvis: $moyenneAvis, '
+        'imageLieu: $imageLieu)';
   }
 }

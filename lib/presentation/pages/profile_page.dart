@@ -3,6 +3,7 @@
 import 'package:event_flow/config/theme/app_color.dart';
 import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/presentation/pages/auth/login_page.dart';
+import 'package:event_flow/presentation/pages/auth/register_page.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -131,7 +132,11 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () {
-                // Naviguer vers la page d'inscription
+               
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterPage()),
+                );
                 
               },
               icon: const Icon(Icons.app_registration),

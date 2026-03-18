@@ -5,6 +5,7 @@ class AppTheme {
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
+    fontFamily: 'Poppins',
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primaryOrange,
       brightness: Brightness.light,
@@ -149,6 +150,7 @@ class AppTheme {
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
+    fontFamily: 'Poppins',
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primaryOrange,
       brightness: Brightness.dark,

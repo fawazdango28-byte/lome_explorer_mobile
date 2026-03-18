@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:event_flow/config/theme/app_color.dart';
 import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/core/providers/geo_provider.dart';
@@ -8,6 +9,7 @@ import 'package:event_flow/presentation/pages/auth/auth_guard.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class LieuCreatePage extends StatefulWidget {
@@ -23,14 +25,16 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
   final _descriptionController = TextEditingController();
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
-  final _searchController = TextEditingController();
 
   GoogleMapController? _mapController;
   String? _selectedCategorie;
   LatLng? _selectedPosition;
   bool _isLoading = false;
-  bool _isSearching = false;
-  List<QuartierEntity> _searchResults = [];
+  File? _selectedImage;
+  
+  // États pour les sections déroulables
+  bool _isImageSectionExpanded = false;
+  bool _isDescriptionExpanded = false;
 
   final List<String> _categories = [
     'Restaurant',
@@ -45,13 +49,11 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     'Autre',
   ];
 
-  // Position par défaut (Lomé)
   static const LatLng _lomeCenter = LatLng(6.1319, 1.2228);
 
   @override
   void initState() {
     super.initState();
-    // Vérifier l'authentification au chargement
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAuthentication();
     });
@@ -59,7 +61,6 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     _detectUserLocation();
   }
 
-  /// Vérifier que l'utilisateur est authentifié
   Future<void> _checkAuthentication() async {
     final authNotifier = context.read<AuthNotifier>();
 
@@ -70,16 +71,13 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
       );
 
       if (!shouldLogin && mounted) {
-        // Retour à la page précédente si refus
         Navigator.pop(context);
         return;
       }
 
       if (shouldLogin && mounted) {
-        // Redirection vers login
         final result = await Navigator.pushNamed(context, '/login');
         if (result != true && mounted) {
-          // Si pas de connexion réussie, retour
           Navigator.pop(context);
           return;
         }
@@ -93,7 +91,6 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     _descriptionController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
-    _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -116,7 +113,6 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
           _longitudeController.text = location.longitude.toStringAsFixed(6);
         });
 
-        // Centrer la carte sur la position détectée
         _mapController?.animateCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(target: _selectedPosition!, zoom: 15),
@@ -124,13 +120,29 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
         );
       }
     } catch (e) {
-      // Utiliser Lomé par défaut si échec
       setState(() {
         _selectedPosition = _lomeCenter;
         _latitudeController.text = _lomeCenter.latitude.toStringAsFixed(6);
         _longitudeController.text = _lomeCenter.longitude.toStringAsFixed(6);
       });
     }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+    });
   }
 
   @override
@@ -144,46 +156,52 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Nom
+              // Nom du lieu
               CustomTextField(
                 label: 'Nom du lieu',
-                hint: 'Ex: Restaurant Le Palmier',
+                hint: 'Ex: Le Palmier',
                 controller: _nomController,
                 prefixIcon: Icons.business,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nom';
+                    return 'Nom requis';
                   }
                   if (value.length < 3) {
-                    return 'Le nom doit contenir au moins 3 caractères';
+                    return 'Min. 3 caractères';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-
               // Catégorie
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Catégorie',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: _selectedCategorie,
                     decoration: InputDecoration(
-                      hintText: 'Sélectionnez une catégorie',
-                      prefixIcon: const Icon(Icons.category),
+                      hintText: 'Type',
+                      prefixIcon: const Icon(Icons.category, size: 20),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                     ),
                     items: _categories.map((categorie) {
                       return DropdownMenuItem(
                         value: categorie,
-                        child: Text(categorie),
+                        child: Text(
+                          categorie,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -191,7 +209,7 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
                     },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Veuillez sélectionner une catégorie';
+                        return 'Requis';
                       }
                       return null;
                     },
@@ -200,134 +218,129 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
               ),
               const SizedBox(height: 16),
 
-              // Description
-              CustomTextField(
-                label: 'Description',
-                hint: 'Décrivez le lieu...',
-                controller: _descriptionController,
-                prefixIcon: Icons.description,
-                maxLines: 5,
-                minLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer une description';
-                  }
-                  if (value.length < 10) {
-                    return 'La description doit contenir au moins 10 caractères';
-                  }
-                  return null;
+              // Section Image (Déroulable)
+              _buildExpandableSection(
+                title: 'Image du lieu',
+                subtitle: _selectedImage != null 
+                    ? 'Image sélectionnée' 
+                    : 'Ajouter une image (optionnel)',
+                icon: Icons.add_photo_alternate,
+                isExpanded: _isImageSectionExpanded,
+                onTap: () {
+                  setState(() {
+                    _isImageSectionExpanded = !_isImageSectionExpanded;
+                  });
                 },
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _selectedImage != null
+                      ? Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                _selectedImage!,
+                                width: double.infinity,
+                                height: 200,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: IconButton(
+                                onPressed: _removeImage,
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.black54,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : InkWell(
+                          onTap: _pickImage,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_photo_alternate,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Appuyez pour ajouter une image',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Section Description (Déroulable)
+              _buildExpandableSection(
+                title: 'Description',
+                subtitle: _descriptionController.text.isEmpty
+                    ? 'Ajouter une description'
+                    : '${_descriptionController.text.length} caractères',
+                icon: Icons.description,
+                isExpanded: _isDescriptionExpanded,
+                onTap: () {
+                  setState(() {
+                    _isDescriptionExpanded = !_isDescriptionExpanded;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: CustomTextField(
+                    label: '',
+                    hint: 'Décrivez le lieu...',
+                    controller: _descriptionController,
+                    maxLines: 5,
+                    minLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Description requise';
+                      }
+                      if (value.length < 10) {
+                        return 'Min. 10 caractères';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      // Mettre à jour le compteur de caractères
+                      setState(() {});
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
               // Section Localisation
               Text(
                 'Localisation',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
-
-              // Barre de recherche de lieu
-              _buildSearchBar(),
-              const SizedBox(height: 12),
-
-              // Résultats de recherche
-              if (_isSearching)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (_searchResults.isNotEmpty)
-                _buildSearchResults(),
-
-              const SizedBox(height: 16),
 
               // Carte interactive
               _buildMap(),
-              const SizedBox(height: 16),
-
-              // Coordonnées GPS (lecture seule, remplies automatiquement)
-              Row(
-                children: [
-                  Expanded(
-                    child: CustomTextField(
-                      label: 'Latitude',
-                      hint: 'Ex: 6.1312',
-                      controller: _latitudeController,
-                      prefixIcon: Icons.location_on,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Latitude requise';
-                        }
-                        final latitude = double.tryParse(value);
-                        if (latitude == null) {
-                          return 'Latitude invalide';
-                        }
-                        if (latitude < -90 || latitude > 90) {
-                          return 'Entre -90 et 90';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) {
-                        final lat = double.tryParse(value);
-                        final lng = double.tryParse(_longitudeController.text);
-                        if (lat != null && lng != null) {
-                          setState(() {
-                            _selectedPosition = LatLng(lat, lng);
-                          });
-                          _mapController?.animateCamera(
-                            CameraUpdate.newLatLng(_selectedPosition!),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: CustomTextField(
-                      label: 'Longitude',
-                      hint: 'Ex: 1.2220',
-                      controller: _longitudeController,
-                      prefixIcon: Icons.location_on,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Longitude requise';
-                        }
-                        final longitude = double.tryParse(value);
-                        if (longitude == null) {
-                          return 'Longitude invalide';
-                        }
-                        if (longitude < -180 || longitude > 180) {
-                          return 'Entre -180 et 180';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) {
-                        final lat = double.tryParse(_latitudeController.text);
-                        final lng = double.tryParse(value);
-                        if (lat != null && lng != null) {
-                          setState(() {
-                            _selectedPosition = LatLng(lat, lng);
-                          });
-                          _mapController?.animateCamera(
-                            CameraUpdate.newLatLng(_selectedPosition!),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 12),
 
               // Boutons d'aide pour la position
@@ -350,7 +363,7 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // Info
               Container(
@@ -361,11 +374,11 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, color: Colors.blue),
+                    const Icon(Icons.info_outline, color: Colors.blue, size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Recherchez un lieu, cliquez sur la carte ou utilisez votre position actuelle',
+                        'Recherchez un lieu, cliquez sur la carte ou utilisez votre position',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -413,70 +426,79 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return TextField(
-      controller: _searchController,
-      decoration: InputDecoration(
-        hintText: 'Rechercher un lieu ou une adresse...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: _searchController.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _searchController.clear();
-                    _searchResults.clear();
-                  });
-                },
-              )
-            : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      onChanged: (value) {
-        if (value.length > 2) {
-          _searchLocation(value);
-        } else {
-          setState(() {
-            _searchResults.clear();
-          });
-        }
-      },
-    );
-  }
-
-  Widget _buildSearchResults() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((255 * 0.1).round()),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemCount: _searchResults.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final result = _searchResults[index];
-          return ListTile(
-            leading: Icon(Icons.location_on, color: AppColors.primaryGreen),
-            title: Text(result.nom),
-            subtitle: Text(
-              'Lat: ${result.latitude.toStringAsFixed(4)}, '
-              'Lng: ${result.longitude.toStringAsFixed(4)}',
-              style: const TextStyle(fontSize: 12),
+  // Widget pour les sections déroulables
+  Widget _buildExpandableSection({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isExpanded,
+    required VoidCallback onTap,
+    required Widget child,
+  }) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isExpanded 
+                  ? AppColors.primaryGreen.withAlpha((255 * 0.05).round())
+                  : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isExpanded 
+                    ? AppColors.primaryGreen 
+                    : Colors.grey.shade300,
+              ),
             ),
-            onTap: () => _selectSearchResult(result),
-          );
-        },
-      ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isExpanded 
+                      ? AppColors.primaryGreen 
+                      : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isExpanded 
+                              ? AppColors.primaryGreen 
+                              : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isExpanded 
+                      ? Icons.keyboard_arrow_up 
+                      : Icons.keyboard_arrow_down,
+                  color: isExpanded 
+                      ? AppColors.primaryGreen 
+                      : Colors.grey.shade600,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded) child,
+      ],
     );
   }
 
@@ -530,85 +552,6 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     );
   }
 
-  Future<void> _searchLocation(String query) async {
-    setState(() {
-      _isSearching = true;
-    });
-
-    try {
-      // Rechercher dans les quartiers
-      final quartiersNotifier = context.read<QuartiersNotifier>();
-      if (quartiersNotifier.quartiers.isEmpty) {
-        await quartiersNotifier.fetchQuartiers();
-      }
-
-      final results = quartiersNotifier.quartiers
-          .where((q) => q.nom.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-
-      // Si aucun résultat dans les quartiers, essayer le géocodage
-      if (results.isEmpty) {
-        await _geocodeAddress(query);
-      }
-    } catch (e) {
-      setState(() {
-        _isSearching = false;
-        _searchResults.clear();
-      });
-      if (mounted) {
-        SnackBarHelper.showError(context, 'Erreur lors de la recherche');
-      }
-    }
-  }
-
-  Future<void> _geocodeAddress(String address) async {
-    try {
-      final geocodeNotifier = context.read<GeocodeAddressNotifier>();
-      final location = await geocodeNotifier.geocodeAddress(address);
-
-      if (location != null) {
-        // Créer un résultat avec l'adresse géocodée
-        final quartier = QuartierEntity(
-          key: 'geocoded',
-          nom: address,
-          latitude: location.latitude,
-          longitude: location.longitude,
-        );
-
-        setState(() {
-          _searchResults = [quartier];
-        });
-      }
-    } catch (e) {
-      // Ignorer l'erreur silencieusement
-    }
-  }
-
-  void _selectSearchResult(QuartierEntity result) {
-    setState(() {
-      _selectedPosition = LatLng(result.latitude, result.longitude);
-      _latitudeController.text = result.latitude.toStringAsFixed(6);
-      _longitudeController.text = result.longitude.toStringAsFixed(6);
-      _searchResults.clear();
-      _searchController.clear();
-    });
-
-    // Centrer la carte sur le résultat
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: _selectedPosition!, zoom: 16),
-      ),
-    );
-
-    // Fermer le clavier
-    FocusScope.of(context).unfocus();
-  }
-
   void _showQuartiersDialog() {
     final quartiersNotifier = context.read<QuartiersNotifier>();
 
@@ -649,9 +592,26 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
     );
   }
 
-  // Dans _handleSubmit, ajouter une double vérification :
+  void _selectSearchResult(dynamic quartier) {
+    final latitude = quartier.latitude as double?;
+    final longitude = quartier.longitude as double?;
+
+    if (latitude != null && longitude != null) {
+      setState(() {
+        _selectedPosition = LatLng(latitude, longitude);
+        _latitudeController.text = latitude.toStringAsFixed(6);
+        _longitudeController.text = longitude.toStringAsFixed(6);
+      });
+
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _selectedPosition!, zoom: 15),
+        ),
+      );
+    }
+  }
+
   Future<void> _handleSubmit() async {
-    // Double vérification avant soumission
     final authNotifier = context.read<AuthNotifier>();
     if (!authNotifier.isAuthenticated) {
       SnackBarHelper.showError(
@@ -693,6 +653,7 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
         categorie: categorie,
         latitude: latitude,
         longitude: longitude,
+        image: _selectedImage,
       );
 
       if (mounted) {
@@ -703,13 +664,11 @@ class _LieuCreatePageState extends State<LieuCreatePage> {
       if (mounted) {
         String errorMessage = 'Erreur lors de la création: ';
 
-        // Gestion des erreurs spécifiques
         if (e.toString().contains('401') ||
             e.toString().contains('authentication')) {
           errorMessage =
               'Erreur d\'authentification. Veuillez vous reconnecter.';
 
-          // Déconnexion automatique en cas d'erreur 401
           await context.read<AuthNotifier>().logout();
           if (mounted) {
             await Navigator.pushNamed(context, '/login');
