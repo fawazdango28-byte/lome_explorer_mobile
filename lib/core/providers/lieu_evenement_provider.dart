@@ -151,8 +151,14 @@ class LieuDetailNotifier extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<LieuEntity?> fetchLieu(String lieuId) async {
-    if (cache.containsKey(lieuId)) {
+  /// Invalider le cache mémoire pour forcer un rechargement
+  void invalidate(String lieuId) {
+    cache.remove(lieuId);
+    notifyListeners();
+  }
+
+  Future<LieuEntity?> fetchLieu(String lieuId, {bool forceRefresh = false}) async {
+    if (!forceRefresh && cache.containsKey(lieuId)) {
       return cache[lieuId];
     }
 

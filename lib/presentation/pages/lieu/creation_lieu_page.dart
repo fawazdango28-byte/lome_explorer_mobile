@@ -3,7 +3,6 @@ import 'package:event_flow/config/theme/app_color.dart';
 import 'package:event_flow/core/providers/auth_provider.dart';
 import 'package:event_flow/core/providers/geo_provider.dart';
 import 'package:event_flow/core/services/lieu_evenement_service.dart';
-import 'package:event_flow/domains/entities/geolocation_entity.dart';
 import 'package:event_flow/domains/injections/service_locator.dart' as getit;
 import 'package:event_flow/presentation/pages/auth/auth_guard.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';

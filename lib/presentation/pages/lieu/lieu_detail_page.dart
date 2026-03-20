@@ -9,10 +9,8 @@ import 'package:event_flow/presentation/pages/auth/guard_lieu_evenement.dart';
 import 'package:event_flow/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 
-final _logger = Logger();
 
 class LieuDetailPage extends StatefulWidget {
   final String lieuId;
@@ -34,11 +32,11 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
     });
   }
 
-  Future<void> _fetchLieu() async {
+  Future<void> _fetchLieu({bool forceRefresh = false}) async {
     if (!mounted) return;
 
     final notifier = context.read<LieuDetailNotifier>();
-    await notifier.fetchLieu(widget.lieuId);
+    await notifier.fetchLieu(widget.lieuId, forceRefresh: forceRefresh);
 
     if (mounted) {
       setState(() => _hasTriedFetch = true);
@@ -76,7 +74,7 @@ class _LieuDetailPageState extends State<LieuDetailPage> {
 
                       if (result == true && mounted) {
                         setState(() => _hasTriedFetch = false);
-                        _fetchLieu();
+                        _fetchLieu(forceRefresh: true);
                       }
                     },
                   ),
