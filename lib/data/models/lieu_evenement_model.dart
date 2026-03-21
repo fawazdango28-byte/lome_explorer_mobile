@@ -19,7 +19,7 @@ class LieuModel extends Equatable {
   final String proprietaireId;
   final int nombreEvenements;
   final double? moyenneAvis;
-  final String? imageLieu; // ✅ AJOUT: URL de l'image
+  final String? imageLieu; 
 
   const LieuModel({
     required this.id,
@@ -33,7 +33,7 @@ class LieuModel extends Equatable {
     required this.proprietaireId,
     required this.nombreEvenements,
     this.moyenneAvis,
-    this.imageLieu, // ✅ AJOUT
+    this.imageLieu, 
   });
 
   factory LieuModel.fromJson(Map<String, dynamic> json) {
@@ -60,7 +60,7 @@ class LieuModel extends Equatable {
       description = json['description'].toString().trim();
     }
 
-    // ✅ AJOUT: Extraction de l'URL de l'image
+    // Extraction de l'URL de l'image
     String? imageLieu;
     if (json['image_lieu'] != null && json['image_lieu'].toString().isNotEmpty) {
       imageLieu = json['image_lieu'].toString();
@@ -83,7 +83,7 @@ class LieuModel extends Equatable {
       moyenneAvis: json['moyenne_avis'] != null
           ? double.parse(json['moyenne_avis'].toString())
           : null,
-      imageLieu: imageLieu, // ✅ AJOUT
+      imageLieu: imageLieu, 
     );
   }
 
@@ -100,7 +100,7 @@ class LieuModel extends Equatable {
       'proprietaire_id': proprietaireId, 
       'nombre_evenements': nombreEvenements,
       'moyenne_avis': moyenneAvis,
-      'image_lieu': imageLieu, // ✅ AJOUT
+      'image_lieu': imageLieu, 
     };
   }
 
@@ -121,7 +121,7 @@ class LieuModel extends Equatable {
       proprietaireId: proprietaireId,
       nombreEvenements: nombreEvenements,
       moyenneAvis: moyenneAvis,
-      imageLieu: imageLieu, // ✅ AJOUT
+      imageLieu: imageLieu, 
     );
   }
 
@@ -138,7 +138,7 @@ class LieuModel extends Equatable {
     proprietaireId,
     nombreEvenements,
     moyenneAvis,
-    imageLieu, // ✅ AJOUT
+    imageLieu, 
   ];
 
   @override

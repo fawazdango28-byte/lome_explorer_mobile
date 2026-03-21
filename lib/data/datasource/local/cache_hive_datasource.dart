@@ -105,7 +105,7 @@ class LocalDataSource {
           proprietaireId: lieu.proprietaireId,
           nombreEvenements: lieu.nombreEvenements,
           moyenneAvis: lieu.moyenneAvis,
-          imageLieu: lieu.imageLieu, // ✅ AJOUT
+          imageLieu: lieu.imageLieu, 
         );
         await _lieuBox.put(lieu.id, hiveLieu);
       }
@@ -132,7 +132,7 @@ class LocalDataSource {
                 proprietaireId: h.proprietaireId,
                 nombreEvenements: h.nombreEvenements,
                 moyenneAvis: h.moyenneAvis,
-                imageLieu: h.imageLieu, // ✅ AJOUT
+                imageLieu: h.imageLieu,
               ))
           .toList();
       _logger.d('${lieux.length} lieux récupérés du cache');
@@ -159,7 +159,7 @@ class LocalDataSource {
           proprietaireId: hiveLieu.proprietaireId,
           nombreEvenements: hiveLieu.nombreEvenements,
           moyenneAvis: hiveLieu.moyenneAvis,
-          imageLieu: hiveLieu.imageLieu, // ✅ AJOUT
+          imageLieu: hiveLieu.imageLieu, 
         );
       }
       return null;

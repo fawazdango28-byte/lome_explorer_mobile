@@ -1,4 +1,4 @@
-import 'dart:io'; // ✅ AJOUT
+import 'dart:io';
 import 'package:event_flow/data/datasource/local/cache_hive_datasource.dart';
 import 'package:event_flow/data/datasource/remote/api_datasource_remote.dart';
 import 'package:event_flow/data/models/avis_lieu_event_geo_model.dart';
@@ -84,14 +84,13 @@ class LieuEvenementService {
   }
 
   /// Créer un nouveau lieu
-  /// ✅ MODIFIÉ: Ajout du paramètre image
   Future<LieuModel> createLieu({
     required String nom,
     required String description,
     required String categorie,
     required double latitude,
     required double longitude,
-    File? image, // ✅ AJOUT: Paramètre optionnel pour l'image
+    File? image, 
   }) async {
     try {
       _logger.i('Création d\'un lieu: $nom (avec image: ${image != null})');
@@ -102,7 +101,7 @@ class LieuEvenementService {
         categorie: categorie,
         latitude: latitude,
         longitude: longitude,
-        image: image, // ✅ AJOUT: Passer l'image à la datasource
+        image: image, 
       );
 
       // Vider le cache pour forcer le rafraîchissement
@@ -117,7 +116,6 @@ class LieuEvenementService {
   }
 
   /// Mettre à jour un lieu existant
-  /// ✅ MODIFIÉ: Ajout du paramètre image
   Future<LieuModel> updateLieu({
     required String id,
     required String nom,
@@ -125,7 +123,7 @@ class LieuEvenementService {
     required String categorie,
     required double latitude,
     required double longitude,
-    File? image, // ✅ AJOUT: Paramètre optionnel pour l'image
+    File? image, 
   }) async {
     try {
       _logger.i('Mise à jour du lieu: $id (avec image: ${image != null})');
@@ -137,7 +135,7 @@ class LieuEvenementService {
         categorie: categorie,
         latitude: latitude,
         longitude: longitude,
-        image: image, // ✅ AJOUT
+        image: image, 
       );
       
       // Mettre à jour l'élément dans le cache au lieu de tout vider

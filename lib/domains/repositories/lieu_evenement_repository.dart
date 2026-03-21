@@ -1,4 +1,4 @@
-import 'dart:io'; // ✅ AJOUT pour File
+import 'dart:io'; 
 import 'package:dartz/dartz.dart';
 import 'package:event_flow/domains/entities/erreur_entity.dart';
 import 'package:event_flow/domains/entities/evenement_entity.dart';
@@ -26,7 +26,7 @@ abstract class LieuEvenementRepository {
     required String categorie,
     required double latitude,
     required double longitude,
-    File? image, // ✅ AJOUT: paramètre optionnel pour l'image
+    File? image,
   });
 
   /// Récupérer les lieux à proximité

@@ -1,4 +1,4 @@
-import 'dart:io'; // ✅ AJOUT
+import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -256,7 +256,7 @@ class RemoteDataSource {
     required String categorie,
     required double latitude,
     required double longitude,
-    File? image, // ✅ AJOUT
+    File? image,
   }) async {
     try {
       final formData = FormData();
@@ -304,7 +304,7 @@ class RemoteDataSource {
     required String categorie,
     required double latitude,
     required double longitude,
-    File? image, // ✅ AJOUT
+    File? image,
   }) async {
     try {
       final formData = FormData();
